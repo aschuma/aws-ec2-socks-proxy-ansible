@@ -1,0 +1,11 @@
+---
+# Purpose: Interactively select an .ini configuration file and set current-config.ini symlink.
+# Expected vars: awssocks_config_dir (optional), awssocks_symlink_path (optional), awssocks_config_selection_index (optional).
+- name: AWSSOCKS configuration manager
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Run configuration manager
+      ansible.builtin.import_role:
+        name: awssocks_config_manager
+

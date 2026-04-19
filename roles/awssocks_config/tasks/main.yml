@@ -1,0 +1,98 @@
+- name: Compute repository root path
+  ansible.builtin.set_fact:
+    awssocks_repo_root: "{{ playbook_dir | dirname }}"
+
+- name: Check whether current-config.ini exists
+  ansible.builtin.stat:
+    path: "{{ awssocks_repo_root }}/{{ awssocks_current_config_name }}"
+  register: awssocks_current_config_stat
+
+- name: Check whether config.ini exists
+  ansible.builtin.stat:
+    path: "{{ awssocks_repo_root }}/{{ awssocks_fallback_config_name }}"
+  register: awssocks_fallback_config_stat
+
+- name: Select active configuration file
+  ansible.builtin.set_fact:
+    awssocks_config_file_path: >-
+      {{
+        (awssocks_repo_root ~ '/' ~ awssocks_current_config_name)
+        if awssocks_current_config_stat.stat.exists else
+        ((awssocks_repo_root ~ '/' ~ awssocks_fallback_config_name)
+         if awssocks_fallback_config_stat.stat.exists else None)
+      }}
+
+- name: Initialize INI-derived values
+  ansible.builtin.set_fact:
+    awssocks_file_values: {}
+
+- name: Load INI-derived values
+  ansible.builtin.set_fact:
+    awssocks_file_values:
+      awssocks_key: >-
+        {{ lookup('ansible.builtin.ini', 'awssocks_key section=awssocks file=' ~ awssocks_config_file_path ~ ' default=', errors='ignore') }}
+      awssocks_region: >-
+        {{ lookup('ansible.builtin.ini', 'awssocks_region section=awssocks file=' ~ awssocks_config_file_path ~ ' default=', errors='ignore') }}
+      awssocks_ec2_instance_size: >-
+        {{ lookup('ansible.builtin.ini', 'awssocks_ec2_instance_size section=awssocks file=' ~ awssocks_config_file_path ~ ' default=', errors='ignore') }}
+      awssocks_ec2_architecture: >-
+        {{ lookup('ansible.builtin.ini', 'awssocks_ec2_architecture section=awssocks file=' ~ awssocks_config_file_path ~ ' default=', errors='ignore') }}
+      awssocks_key_name: >-
+        {{ lookup('ansible.builtin.ini', 'awssocks_key_name section=awssocks file=' ~ awssocks_config_file_path ~ ' default=', errors='ignore') }}
+      awssocks_security_group_name: >-
+        {{ lookup('ansible.builtin.ini', 'awssocks_security_group_name section=awssocks file=' ~ awssocks_config_file_path ~ ' default=', errors='ignore') }}
+      awssocks_auto_termination_after_minutes: >-
+        {{ lookup('ansible.builtin.ini', 'awssocks_auto_termination_after_minutes section=awssocks file=' ~ awssocks_config_file_path ~ ' default=', errors='ignore') }}
+      awssocks_local_ssh_port: >-
+        {{ lookup('ansible.builtin.ini', 'awssocks_local_ssh_port section=awssocks file=' ~ awssocks_config_file_path ~ ' default=', errors='ignore') }}
+  when: awssocks_config_file_path is not none
+
+- name: Resolve final configuration with precedence env > current-config.ini > config.ini > defaults
+  ansible.builtin.set_fact:
+    awssocks_key_resolved: >-
+      {{ lookup('ansible.builtin.env', 'AWSSOCKS_KEY') | default(awssocks_file_values.awssocks_key, true) | default(awssocks_key_default, true) }}
+    awssocks_region_resolved: >-
+      {{ lookup('ansible.builtin.env', 'AWSSOCKS_REGION') | default(awssocks_file_values.awssocks_region, true) | default(awssocks_region_default, true) }}
+    awssocks_ec2_instance_size_resolved: >-
+      {{ lookup('ansible.builtin.env', 'AWSSOCKS_EC2_INSTANCE_SIZE') | default(awssocks_file_values.awssocks_ec2_instance_size, true) | default(awssocks_ec2_instance_size_default, true) }}
+    awssocks_ec2_architecture_resolved: >-
+      {{ lookup('ansible.builtin.env', 'AWSSOCKS_EC2_ARCHITECTURE') | default(awssocks_file_values.awssocks_ec2_architecture, true) | default(awssocks_ec2_architecture_default, true) }}
+    awssocks_key_name_resolved: >-
+      {{ lookup('ansible.builtin.env', 'AWSSOCKS_KEY_NAME') | default(awssocks_file_values.awssocks_key_name, true) | default(awssocks_key_name_default, true) }}
+    awssocks_security_group_name_resolved: >-
+      {{ lookup('ansible.builtin.env', 'AWSSOCKS_SECURITY_GROUP_NAME') | default(awssocks_file_values.awssocks_security_group_name, true) | default(awssocks_security_group_name_default, true) }}
+    awssocks_auto_termination_after_minutes_resolved: >-
+      {{ (lookup('ansible.builtin.env', 'AWSSOCKS_AUTO_TERMINATION_AFTER_MINUTES') | default(awssocks_file_values.awssocks_auto_termination_after_minutes, true) | default(awssocks_auto_termination_after_minutes_default, true)) | int }}
+    awssocks_local_ssh_port_resolved: >-
+      {{ (lookup('ansible.builtin.env', 'AWSSOCKS_LOCAL_SSH_PORT') | default(awssocks_file_values.awssocks_local_ssh_port, true) | default(awssocks_local_ssh_port_default, true)) | int }}
+
+- name: Normalize instance size candidates list
+  ansible.builtin.set_fact:
+    awssocks_ec2_instance_size_candidates: >-
+      {{
+        awssocks_ec2_instance_size_resolved
+        .split(',')
+        | map('trim')
+        | reject('equalto', '')
+        | list
+      }}
+
+- name: Build resolved configuration map
+  ansible.builtin.set_fact:
+    awssocks_resolved_config:
+      AWSSOCKS_KEY: "{{ awssocks_key_resolved }}"
+      AWSSOCKS_REGION: "{{ awssocks_region_resolved }}"
+      AWSSOCKS_EC2_INSTANCE_SIZE: "{{ awssocks_ec2_instance_size_candidates | join(',') }}"
+      AWSSOCKS_EC2_ARCHITECTURE: "{{ awssocks_ec2_architecture_resolved }}"
+      AWSSOCKS_KEY_NAME: "{{ awssocks_key_name_resolved }}"
+      AWSSOCKS_SECURITY_GROUP_NAME: "{{ awssocks_security_group_name_resolved }}"
+      AWSSOCKS_AUTO_TERMINATION_AFTER_MINUTES: "{{ awssocks_auto_termination_after_minutes_resolved }}"
+      AWSSOCKS_LOCAL_SSH_PORT: "{{ awssocks_local_ssh_port_resolved }}"
+      AWSSOCKS_CONFIG_FILE: "{{ awssocks_config_file_path | default('None') }}"
+
+- name: Log resolved configuration
+  ansible.builtin.import_role:
+    name: awssocks_logging
+  vars:
+    awssocks_log_message: "Resolved configuration {{ awssocks_resolved_config | to_json }}"
+

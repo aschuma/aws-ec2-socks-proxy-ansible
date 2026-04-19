@@ -1,0 +1,33 @@
+- name: Try launching instance with candidate type
+  amazon.aws.ec2_instance:
+    region: "{{ awssocks_region_resolved }}"
+    state: running
+    wait: true
+    count: 1
+    image_id: "{{ awssocks_selected_ami_id }}"
+    instance_type: "{{ awssocks_candidate_instance_type }}"
+    key_name: "{{ awssocks_key_name_resolved }}"
+    security_group: "{{ awssocks_security_group_id }}"
+    instance_initiated_shutdown_behavior: terminate
+    tags:
+      AWSSOCKS__MANAGED: "True"
+      AWSSOCKS__AUTO_TERMINATION_AFTER_MINUTES: "{{ awssocks_auto_termination_after_minutes_resolved | string }}"
+    user_data: "{{ awssocks_auto_termination_user_data if awssocks_auto_termination_after_minutes_resolved >= 0 else omit }}"
+  register: awssocks_candidate_launch_result
+  failed_when: false
+
+- name: Store launch success details for candidate
+  ansible.builtin.set_fact:
+    awssocks_launch_success: true
+    awssocks_launched_instance_id: "{{ (awssocks_candidate_launch_result.instances | first).instance_id }}"
+    awssocks_launched_instance_type: "{{ awssocks_candidate_instance_type }}"
+  when:
+    - not awssocks_candidate_launch_result.failed
+    - (awssocks_candidate_launch_result.instances | default([]) | length) > 0
+
+- name: Append candidate launch failure details
+  ansible.builtin.set_fact:
+    awssocks_launch_failure_messages: "{{ awssocks_launch_failure_messages + [awssocks_candidate_instance_type ~ ': ' ~ (awssocks_candidate_launch_result.msg | default('unknown launch error'))] }}"
+  when:
+    - awssocks_candidate_launch_result.failed or (awssocks_candidate_launch_result.instances | default([]) | length) == 0
+

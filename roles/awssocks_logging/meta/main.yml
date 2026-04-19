@@ -1,0 +1,6 @@
+galaxy_info:
+  author: aschuma
+  description: Emit timestamped AWSSOCKS INFO logs.
+  min_ansible_version: "2.15"
+dependencies: []
+

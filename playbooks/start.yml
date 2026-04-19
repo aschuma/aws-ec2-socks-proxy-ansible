@@ -1,0 +1,54 @@
+---
+# Purpose: Provision and start AWSSOCKS infrastructure and print SSH SOCKSv5 command.
+# Expected vars: optional AWSSOCKS_* env vars or awssocks section in current-config.ini/config.ini.
+- name: AWSSOCKS START
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Resolve configuration
+      ansible.builtin.import_role:
+        name: awssocks_config
+
+    - name: Validate AWS context
+      ansible.builtin.import_role:
+        name: awssocks_aws_context
+
+    - name: Discover existing managed instances
+      ansible.builtin.import_role:
+        name: awssocks_instance_discovery
+
+    - name: Select AMI
+      ansible.builtin.import_role:
+        name: awssocks_ami_select
+
+    - name: Ensure managed security group exists
+      ansible.builtin.include_role:
+        name: awssocks_security_group
+      vars:
+        awssocks_security_group_action: present
+
+    - name: Ensure managed key pair exists
+      ansible.builtin.include_role:
+        name: awssocks_keypair
+      vars:
+        awssocks_keypair_action: present
+
+    - name: Launch managed instance
+      ansible.builtin.import_role:
+        name: awssocks_instance
+      vars:
+        awssocks_instance_action: launch
+
+    - name: Print launch summary
+      ansible.builtin.debug:
+        msg:
+          - "instance_id={{ awssocks_launched_instance.instance_id }}"
+          - "public_ip={{ awssocks_launched_instance.public_ip_address | default('None') }}"
+          - "state={{ awssocks_launched_instance.state.name }}"
+
+    - name: Print SSH SOCKSv5 command
+      ansible.builtin.debug:
+        msg: >-
+          ssh -o "StrictHostKeyChecking no" -C -N -i ~/.ssh/{{ awssocks_key_resolved }}
+          ec2-user@{{ awssocks_launched_instance.public_ip_address }} -D {{ awssocks_local_ssh_port_resolved }}
+

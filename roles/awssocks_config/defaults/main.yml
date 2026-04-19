@@ -1,0 +1,12 @@
+awssocks_key_default: id_ed25519
+awssocks_region_default: eu-west-2
+awssocks_ec2_instance_size_default: t3.nano
+awssocks_ec2_architecture_default: x86_64
+awssocks_key_name_default: AWSSOCKS_KEY
+awssocks_security_group_name_default: AWSSOCKS_SG
+awssocks_auto_termination_after_minutes_default: -1
+awssocks_local_ssh_port_default: 4444
+
+awssocks_current_config_name: current-config.ini
+awssocks_fallback_config_name: config.ini
+

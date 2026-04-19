@@ -1,0 +1,40 @@
+- name: Build instance discovery filters
+  ansible.builtin.set_fact:
+    awssocks_instance_discovery_filters:
+      "tag:AWSSOCKS__MANAGED": "True"
+
+- name: Add state filter when requested
+  ansible.builtin.set_fact:
+    awssocks_instance_discovery_filters: "{{ awssocks_instance_discovery_filters | combine({'instance-state-name': awssocks_instance_state_filter}) }}"
+  when: awssocks_instance_state_filter | length > 0
+
+- name: Query managed instances
+  amazon.aws.ec2_instance_info:
+    region: "{{ awssocks_region_resolved }}"
+    filters: "{{ awssocks_instance_discovery_filters }}"
+  register: awssocks_instance_info
+
+- name: Store managed instances
+  ansible.builtin.set_fact:
+    awssocks_managed_instances: "{{ awssocks_instance_info.instances | default([]) }}"
+
+- name: Log discovery summary
+  ansible.builtin.import_role:
+    name: awssocks_logging
+  vars:
+    awssocks_log_message: >-
+      Discovered managed instances count={{ awssocks_managed_instances | length }}
+      state_filter={{ awssocks_instance_state_filter | default('any') }}
+
+- name: Log discovered managed instances
+  ansible.builtin.include_role:
+    name: awssocks_logging
+  vars:
+    awssocks_log_message: >-
+      managed_instance id={{ item.instance_id }}
+      public_ip={{ item.public_ip_address | default('None') }}
+      state={{ item.state.name | default('unknown') }}
+  loop: "{{ awssocks_managed_instances }}"
+  loop_control:
+    label: "{{ item.instance_id }}"
+

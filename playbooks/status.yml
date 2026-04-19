@@ -1,0 +1,45 @@
+---
+# Purpose: Report status of AWSSOCKS-managed instances, security group, and key pair.
+# Expected vars: optional AWSSOCKS_* env vars or awssocks section in current-config.ini/config.ini.
+- name: AWSSOCKS STATUS
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Resolve configuration
+      ansible.builtin.import_role:
+        name: awssocks_config
+
+    - name: Validate AWS context
+      ansible.builtin.import_role:
+        name: awssocks_aws_context
+
+    - name: Discover managed instances
+      ansible.builtin.import_role:
+        name: awssocks_instance_discovery
+
+    - name: Get managed security group status
+      ansible.builtin.include_role:
+        name: awssocks_security_group
+      vars:
+        awssocks_security_group_action: status
+
+    - name: Get managed key pair status
+      ansible.builtin.include_role:
+        name: awssocks_keypair
+      vars:
+        awssocks_keypair_action: status
+
+    - name: Print STATUS summary
+      ansible.builtin.debug:
+        msg:
+          - "managed_instances={{ awssocks_managed_instances | length }}"
+          - "security_group_id={{ awssocks_security_group_id | default('None') }}"
+          - "key_pair_name={{ awssocks_managed_key_name | default('None') }}"
+
+    - name: Print per-instance STATUS
+      ansible.builtin.debug:
+        msg: "instance_id={{ item.instance_id }} public_ip={{ item.public_ip_address | default('None') }} state={{ item.state.name | default('unknown') }}"
+      loop: "{{ awssocks_managed_instances }}"
+      loop_control:
+        label: "{{ item.instance_id }}"
+

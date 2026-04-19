@@ -1,0 +1,52 @@
+- name: Query AL2023 gp3 AMI candidates
+  amazon.aws.ec2_ami_info:
+    region: "{{ awssocks_region_resolved }}"
+    owners:
+      - amazon
+    filters:
+      name: "al2023-ami-*"
+      block-device-mapping.volume-type: gp3
+      state: available
+  register: awssocks_ami_query_result
+
+- name: Fail if AMI catalog is empty
+  ansible.builtin.fail:
+    msg: >-
+      No AL2023 gp3 AMIs found in region {{ awssocks_region_resolved }}.
+  when: awssocks_ami_query_result.images | length == 0
+
+- name: Filter architecture-preferred candidates
+  ansible.builtin.set_fact:
+    awssocks_ami_arch_candidates: >-
+      {{
+        awssocks_ami_query_result.images
+        | selectattr('architecture', 'equalto', awssocks_ec2_architecture_resolved)
+        | list
+      }}
+
+- name: Select final AMI by fallback order
+  ansible.builtin.set_fact:
+    awssocks_selected_ami_image: >-
+      {{
+        (awssocks_ami_arch_candidates | sort(attribute='creation_date') | last)
+        if (awssocks_ami_arch_candidates | length) > 0 else
+        (awssocks_ami_query_result.images | sort(attribute='creation_date') | last)
+      }}
+
+- name: Store selected AMI ID
+  ansible.builtin.set_fact:
+    awssocks_selected_ami_id: "{{ awssocks_selected_ami_image.image_id | default('') }}"
+
+- name: Fail when no AMI ID can be selected
+  ansible.builtin.fail:
+    msg: "Failed to select an AMI ID."
+  when: awssocks_selected_ami_id | length == 0
+
+- name: Log selected AMI
+  ansible.builtin.import_role:
+    name: awssocks_logging
+  vars:
+    awssocks_log_message: >-
+      Selected AMI id={{ awssocks_selected_ami_id }}
+      name={{ awssocks_selected_ami_image.name }}
+

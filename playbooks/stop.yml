@@ -1,0 +1,38 @@
+---
+# Purpose: Terminate AWSSOCKS-managed instances and delete associated AWS resources.
+# Expected vars: optional AWSSOCKS_* env vars or awssocks section in current-config.ini/config.ini.
+- name: AWSSOCKS STOP
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Resolve configuration
+      ansible.builtin.import_role:
+        name: awssocks_config
+
+    - name: Validate AWS context
+      ansible.builtin.import_role:
+        name: awssocks_aws_context
+
+    - name: Discover managed instances
+      ansible.builtin.import_role:
+        name: awssocks_instance_discovery
+
+    - name: Terminate managed instances
+      ansible.builtin.import_role:
+        name: awssocks_instance
+      vars:
+        awssocks_instance_action: terminate
+        awssocks_instances_to_terminate: "{{ awssocks_managed_instances }}"
+
+    - name: Delete managed key pair
+      ansible.builtin.include_role:
+        name: awssocks_keypair
+      vars:
+        awssocks_keypair_action: absent
+
+    - name: Delete managed security group
+      ansible.builtin.include_role:
+        name: awssocks_security_group
+      vars:
+        awssocks_security_group_action: absent
+
