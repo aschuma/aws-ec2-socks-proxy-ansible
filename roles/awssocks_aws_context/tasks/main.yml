@@ -4,11 +4,9 @@
   register: awssocks_aws_identity
 
 - name: Log AWS identity context
-  ansible.builtin.import_role:
-    name: awssocks_logging
-  vars:
-    awssocks_log_message: >-
-      AWS identity validated in region={{ awssocks_region_resolved }}
-      account={{ awssocks_aws_identity.account }}
-      arn={{ awssocks_aws_identity.arn }}
+  ansible.builtin.debug:
+    msg:
+      - "AWS identity validated in region={{ awssocks_region_resolved }}"
+      - "account={{ awssocks_aws_identity.account }}"
+      - "arn={{ awssocks_aws_identity.arn }}"
 

@@ -48,7 +48,6 @@
 
     - name: Print SSH SOCKSv5 command
       ansible.builtin.debug:
-        msg: >-
-          ssh -o "StrictHostKeyChecking no" -C -N -i ~/.ssh/{{ awssocks_key_resolved }}
-          ec2-user@{{ awssocks_launched_instance.public_ip_address }} -D {{ awssocks_local_ssh_port_resolved }}
+        msg:
+          - ssh -o "StrictHostKeyChecking no" -C -N -i ~/.ssh/{{ awssocks_key_resolved }} ec2-user@{{ awssocks_launched_instance.public_ip_address }} -D {{ awssocks_local_ssh_port_resolved }}
 

@@ -20,10 +20,9 @@
         awssocks_instance_state_filter: running
 
     - name: Log no running instance found
-      ansible.builtin.include_role:
-        name: awssocks_logging
-      vars:
-        awssocks_log_message: "No running managed AWSSOCKS instances found. Exiting."
+      ansible.builtin.debug:
+        msg:
+          - "No running managed AWSSOCKS instances found. Exiting."
       when: awssocks_managed_instances | length == 0
 
     - name: End play when no running managed instance exists
@@ -35,12 +34,10 @@
         awssocks_selected_running_instance: "{{ (awssocks_managed_instances | sort(attribute='instance_id')) | first }}"
 
     - name: Log selected instance for tunnel
-      ansible.builtin.import_role:
-        name: awssocks_logging
-      vars:
-        awssocks_log_message: >-
-          selected_running_instance id={{ awssocks_selected_running_instance.instance_id }}
-          public_ip={{ awssocks_selected_running_instance.public_ip_address | default('None') }}
+      ansible.builtin.debug:
+        msg:
+          - "selected_running_instance id={{ awssocks_selected_running_instance.instance_id }}"
+          - "public_ip={{ awssocks_selected_running_instance.public_ip_address | default('None') }}"
 
     - name: Start SSH SOCKSv5 tunnel in foreground
       ansible.builtin.command:

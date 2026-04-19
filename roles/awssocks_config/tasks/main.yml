@@ -77,22 +77,17 @@
         | list
       }}
 
-- name: Build resolved configuration map
-  ansible.builtin.set_fact:
-    awssocks_resolved_config:
-      AWSSOCKS_KEY: "{{ awssocks_key_resolved }}"
-      AWSSOCKS_REGION: "{{ awssocks_region_resolved }}"
-      AWSSOCKS_EC2_INSTANCE_SIZE: "{{ awssocks_ec2_instance_size_candidates | join(',') }}"
-      AWSSOCKS_EC2_ARCHITECTURE: "{{ awssocks_ec2_architecture_resolved }}"
-      AWSSOCKS_KEY_NAME: "{{ awssocks_key_name_resolved }}"
-      AWSSOCKS_SECURITY_GROUP_NAME: "{{ awssocks_security_group_name_resolved }}"
-      AWSSOCKS_AUTO_TERMINATION_AFTER_MINUTES: "{{ awssocks_auto_termination_after_minutes_resolved }}"
-      AWSSOCKS_LOCAL_SSH_PORT: "{{ awssocks_local_ssh_port_resolved }}"
-      AWSSOCKS_CONFIG_FILE: "{{ awssocks_config_file_path | default('None') }}"
-
 - name: Log resolved configuration
-  ansible.builtin.import_role:
-    name: awssocks_logging
-  vars:
-    awssocks_log_message: "Resolved configuration {{ awssocks_resolved_config | to_json }}"
+  ansible.builtin.debug:
+    msg:
+      - "Resolved configuration"
+      - "AWSSOCKS_KEY={{ awssocks_key_resolved }}"
+      - "AWSSOCKS_REGION={{ awssocks_region_resolved }}"
+      - "AWSSOCKS_EC2_INSTANCE_SIZE={{ awssocks_ec2_instance_size_candidates | join(',') }}"
+      - "AWSSOCKS_EC2_ARCHITECTURE={{ awssocks_ec2_architecture_resolved }}"
+      - "AWSSOCKS_KEY_NAME={{ awssocks_key_name_resolved }}"
+      - "AWSSOCKS_SECURITY_GROUP_NAME={{ awssocks_security_group_name_resolved }}"
+      - "AWSSOCKS_AUTO_TERMINATION_AFTER_MINUTES={{ awssocks_auto_termination_after_minutes_resolved }}"
+      - "AWSSOCKS_LOCAL_SSH_PORT={{ awssocks_local_ssh_port_resolved }}"
+      - "AWSSOCKS_CONFIG_FILE={{ awssocks_config_file_path | default('None') }}"
 

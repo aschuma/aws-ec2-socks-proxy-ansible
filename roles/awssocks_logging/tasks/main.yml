@@ -1,4 +1,5 @@
 - name: Emit AWSSOCKS info log
   ansible.builtin.debug:
-    msg: "{{ now(utc=True, fmt='%Y-%m-%dT%H:%M:%SZ') }} INFO {{ awssocks_log_message }}"
+    msg:
+      - "{{ now(utc=True, fmt='%Y-%m-%dT%H:%M:%SZ') }} INFO {{ awssocks_log_message }}"
 

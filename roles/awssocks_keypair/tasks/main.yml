@@ -67,10 +67,8 @@
   when: awssocks_keypair_action == 'absent'
 
 - name: Log key pair operation result
-  ansible.builtin.import_role:
-    name: awssocks_logging
-  vars:
-    awssocks_log_message: >-
-      keypair action={{ awssocks_keypair_action }}
-      name={{ awssocks_managed_key_name | default('None') }}
+  ansible.builtin.debug:
+    msg:
+      - "keypair action={{ awssocks_keypair_action }}"
+      - "name={{ awssocks_managed_key_name | default('None') }}"
 

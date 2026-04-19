@@ -19,21 +19,17 @@
     awssocks_managed_instances: "{{ awssocks_instance_info.instances | default([]) }}"
 
 - name: Log discovery summary
-  ansible.builtin.import_role:
-    name: awssocks_logging
-  vars:
-    awssocks_log_message: >-
-      Discovered managed instances count={{ awssocks_managed_instances | length }}
-      state_filter={{ awssocks_instance_state_filter | default('any') }}
+  ansible.builtin.debug:
+    msg:
+      - "Discovered managed instances count={{ awssocks_managed_instances | length }}"
+      - "state_filter={{ awssocks_instance_state_filter | default('any') }}"
 
 - name: Log discovered managed instances
-  ansible.builtin.include_role:
-    name: awssocks_logging
-  vars:
-    awssocks_log_message: >-
-      managed_instance id={{ item.instance_id }}
-      public_ip={{ item.public_ip_address | default('None') }}
-      state={{ item.state.name | default('unknown') }}
+  ansible.builtin.debug:
+    msg:
+      - "managed_instance id={{ item.instance_id }}"
+      - "public_ip={{ item.public_ip_address | default('None') }}"
+      - "state={{ item.state.name | default('unknown') }}"
   loop: "{{ awssocks_managed_instances }}"
   loop_control:
     label: "{{ item.instance_id }}"

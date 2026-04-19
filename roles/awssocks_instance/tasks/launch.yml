@@ -39,12 +39,10 @@
     awssocks_launched_instance: "{{ awssocks_launched_instance_info.instances | first }}"
 
 - name: Log launched instance details
-  ansible.builtin.import_role:
-    name: awssocks_logging
-  vars:
-    awssocks_log_message: >-
-      launched_instance id={{ awssocks_launched_instance.instance_id }}
-      public_ip={{ awssocks_launched_instance.public_ip_address | default('None') }}
-      state={{ awssocks_launched_instance.state.name }}
-      instance_type={{ awssocks_launched_instance.instance_type }}
+  ansible.builtin.debug:
+    msg:
+      - "launched_instance id={{ awssocks_launched_instance.instance_id }}"
+      - "public_ip={{ awssocks_launched_instance.public_ip_address | default('None') }}"
+      - "state={{ awssocks_launched_instance.state.name }}"
+      - "instance_type={{ awssocks_launched_instance.instance_type }}"
 

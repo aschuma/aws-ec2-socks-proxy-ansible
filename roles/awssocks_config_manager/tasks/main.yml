@@ -30,9 +30,8 @@
 
 - name: Display available configuration choices
   ansible.builtin.debug:
-    msg: >-
-      [{{ idx + 1 }}] {{ item.path }}
-      {% if item.path == awssocks_current_symlink_target %}(active){% endif %}
+    msg:
+      - "[{{ idx + 1 }}] {{ item.path }}{% if item.path == awssocks_current_symlink_target %} (active){% endif %}"
   loop: "{{ awssocks_sorted_config_files }}"
   loop_control:
     index_var: idx
@@ -72,4 +71,5 @@
 
 - name: Report selected configuration
   ansible.builtin.debug:
-    msg: "Active configuration set to {{ awssocks_selected_config_file }}"
+    msg:
+      - "Active configuration set to {{ awssocks_selected_config_file }}"

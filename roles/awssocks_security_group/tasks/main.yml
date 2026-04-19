@@ -59,11 +59,9 @@
   when: awssocks_security_group_action == 'absent'
 
 - name: Log security group operation result
-  ansible.builtin.import_role:
-    name: awssocks_logging
-  vars:
-    awssocks_log_message: >-
-      security_group action={{ awssocks_security_group_action }}
-      id={{ awssocks_security_group_id | default('None') }}
-      description={{ awssocks_security_group_name_resolved }}
+  ansible.builtin.debug:
+    msg:
+      - "security_group action={{ awssocks_security_group_action }}"
+      - "id={{ awssocks_security_group_id | default('None') }}"
+      - "description={{ awssocks_security_group_name_resolved }}"
 

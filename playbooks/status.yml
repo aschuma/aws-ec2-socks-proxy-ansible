@@ -38,7 +38,10 @@
 
     - name: Print per-instance STATUS
       ansible.builtin.debug:
-        msg: "instance_id={{ item.instance_id }} public_ip={{ item.public_ip_address | default('None') }} state={{ item.state.name | default('unknown') }}"
+        msg:
+          - "instance_id={{ item.instance_id }}"
+          - "public_ip={{ item.public_ip_address | default('None') }}"
+          - "state={{ item.state.name | default('unknown') }}"
       loop: "{{ awssocks_managed_instances }}"
       loop_control:
         label: "{{ item.instance_id }}"

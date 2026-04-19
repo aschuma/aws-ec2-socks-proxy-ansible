@@ -43,10 +43,8 @@
   when: awssocks_selected_ami_id | length == 0
 
 - name: Log selected AMI
-  ansible.builtin.import_role:
-    name: awssocks_logging
-  vars:
-    awssocks_log_message: >-
-      Selected AMI id={{ awssocks_selected_ami_id }}
-      name={{ awssocks_selected_ami_image.name }}
+  ansible.builtin.debug:
+    msg:
+      - "Selected AMI id={{ awssocks_selected_ami_id }}"
+      - "name={{ awssocks_selected_ami_image.name }}"
 
