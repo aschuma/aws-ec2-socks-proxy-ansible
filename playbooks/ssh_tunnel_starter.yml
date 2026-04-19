@@ -1,0 +1,59 @@
+---
+# Purpose: Start SOCKSv5 SSH tunnel to first running AWSSOCKS-managed instance.
+# Expected vars: optional AWSSOCKS_* env vars or awssocks section in current-config.ini/config.ini.
+- name: AWSSOCKS SSH tunnel starter
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Resolve configuration
+      ansible.builtin.import_role:
+        name: awssocks_config
+
+    - name: Validate AWS context
+      ansible.builtin.import_role:
+        name: awssocks_aws_context
+
+    - name: Discover running managed instances
+      ansible.builtin.import_role:
+        name: awssocks_instance_discovery
+      vars:
+        awssocks_instance_state_filter: running
+
+    - name: Log no running instance found
+      ansible.builtin.include_role:
+        name: awssocks_logging
+      vars:
+        awssocks_log_message: "No running managed AWSSOCKS instances found. Exiting."
+      when: awssocks_managed_instances | length == 0
+
+    - name: End play when no running managed instance exists
+      ansible.builtin.meta: end_play
+      when: awssocks_managed_instances | length == 0
+
+    - name: Select first running managed instance deterministically
+      ansible.builtin.set_fact:
+        awssocks_selected_running_instance: "{{ (awssocks_managed_instances | sort(attribute='instance_id')) | first }}"
+
+    - name: Log selected instance for tunnel
+      ansible.builtin.import_role:
+        name: awssocks_logging
+      vars:
+        awssocks_log_message: >-
+          selected_running_instance id={{ awssocks_selected_running_instance.instance_id }}
+          public_ip={{ awssocks_selected_running_instance.public_ip_address | default('None') }}
+
+    - name: Start SSH SOCKSv5 tunnel in foreground
+      ansible.builtin.command:
+        argv:
+          - ssh
+          - -o
+          - StrictHostKeyChecking no
+          - -C
+          - -N
+          - -i
+          - "{{ lookup('ansible.builtin.env', 'HOME') }}/.ssh/{{ awssocks_key_resolved }}"
+          - "ec2-user@{{ awssocks_selected_running_instance.public_ip_address }}"
+          - -D
+          - "{{ awssocks_local_ssh_port_resolved | string }}"
+      changed_when: false
+

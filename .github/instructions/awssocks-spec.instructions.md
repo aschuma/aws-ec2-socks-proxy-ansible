@@ -1,3 +1,7 @@
+---
+applyTo: "**"
+---
+
 # Requirements Document: AWS EC2 SOCKS Proxy Tool
 
 ## Overview
@@ -21,7 +25,7 @@ All configuration values must be resolved before any operation begins. The resol
 
 | Parameter | Description | Default |
 |---|---|---|
-| `AWSSOCKS_KEY` | Local filename (without path) of the SSH public key stored in the user's `~/.ssh/` directory | `id_rsa` |
+| `AWSSOCKS_KEY` | Local filename (without path) of the SSH public key stored in the user's `~/.ssh/` directory | `id_ed25519` |
 | `AWSSOCKS_REGION` | AWS region in which to operate | `eu-west-2` |
 | `AWSSOCKS_EC2_INSTANCE_SIZE` | Ordered, comma-separated list of instance type candidates | `t3.nano` |
 | `AWSSOCKS_EC2_ARCHITECTURE` | Preferred CPU architecture for AMI selection | `x86_64` |

@@ -1,0 +1,76 @@
+- name: Lookup key pair by exact name
+  amazon.aws.ec2_key_info:
+    region: "{{ awssocks_region_resolved }}"
+    filters:
+      key-name: "{{ awssocks_key_name_resolved }}"
+  register: awssocks_keypair_info
+
+- name: Store existing key pair
+  ansible.builtin.set_fact:
+    awssocks_existing_keypair: "{{ (awssocks_keypair_info.keypairs | default([]) | first) | default(None) }}"
+
+- name: Build local public key path
+  ansible.builtin.set_fact:
+    awssocks_public_key_path: "{{ lookup('ansible.builtin.env', 'HOME') ~ '/.ssh/' ~ awssocks_key_resolved ~ '.pub' }}"
+  when:
+    - awssocks_keypair_action == 'present'
+    - awssocks_existing_keypair is none
+
+- name: Check local public key file
+  ansible.builtin.stat:
+    path: "{{ awssocks_public_key_path }}"
+  register: awssocks_public_key_stat
+  when:
+    - awssocks_keypair_action == 'present'
+    - awssocks_existing_keypair is none
+
+- name: Fail when local public key file is missing
+  ansible.builtin.fail:
+    msg: "Local public key file not found: {{ awssocks_public_key_path }}"
+  when:
+    - awssocks_keypair_action == 'present'
+    - awssocks_existing_keypair is none
+    - not awssocks_public_key_stat.stat.exists
+
+- name: Import managed key pair when absent
+  amazon.aws.ec2_key:
+    region: "{{ awssocks_region_resolved }}"
+    name: "{{ awssocks_key_name_resolved }}"
+    key_material: "{{ lookup('ansible.builtin.file', awssocks_public_key_path) }}"
+    state: present
+  when:
+    - awssocks_keypair_action == 'present'
+    - awssocks_existing_keypair is none
+
+- name: Delete managed key pair when present
+  amazon.aws.ec2_key:
+    region: "{{ awssocks_region_resolved }}"
+    name: "{{ awssocks_key_name_resolved }}"
+    state: absent
+  when:
+    - awssocks_keypair_action == 'absent'
+    - awssocks_existing_keypair is not none
+
+- name: Store managed key pair name after present
+  ansible.builtin.set_fact:
+    awssocks_managed_key_name: "{{ awssocks_key_name_resolved }}"
+  when: awssocks_keypair_action == 'present'
+
+- name: Store managed key pair name for status
+  ansible.builtin.set_fact:
+    awssocks_managed_key_name: "{{ awssocks_existing_keypair.key_name if awssocks_existing_keypair is not none else None }}"
+  when: awssocks_keypair_action == 'status'
+
+- name: Store managed key pair name after absent
+  ansible.builtin.set_fact:
+    awssocks_managed_key_name: "{{ None }}"
+  when: awssocks_keypair_action == 'absent'
+
+- name: Log key pair operation result
+  ansible.builtin.import_role:
+    name: awssocks_logging
+  vars:
+    awssocks_log_message: >-
+      keypair action={{ awssocks_keypair_action }}
+      name={{ awssocks_managed_key_name | default('None') }}
+

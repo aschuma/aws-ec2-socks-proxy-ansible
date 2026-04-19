@@ -1,0 +1,30 @@
+- name: Log termination target count
+  ansible.builtin.import_role:
+    name: awssocks_logging
+  vars:
+    awssocks_log_message: >-
+      terminating_managed_instances count={{ awssocks_instances_to_terminate | length }}
+
+- name: Terminate each non-terminated managed instance and wait
+  amazon.aws.ec2_instance:
+    region: "{{ awssocks_region_resolved }}"
+    state: absent
+    wait: true
+    instance_ids:
+      - "{{ item.instance_id }}"
+  loop: "{{ awssocks_instances_to_terminate }}"
+  loop_control:
+    label: "{{ item.instance_id }}"
+  when: item.state.name != 'terminated'
+
+- name: Log terminated or skipped instances
+  ansible.builtin.include_role:
+    name: awssocks_logging
+  vars:
+    awssocks_log_message: >-
+      terminate_instance id={{ item.instance_id }}
+      previous_state={{ item.state.name }}
+  loop: "{{ awssocks_instances_to_terminate }}"
+  loop_control:
+    label: "{{ item.instance_id }}"
+

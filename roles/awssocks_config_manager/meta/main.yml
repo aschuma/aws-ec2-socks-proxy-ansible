@@ -1,0 +1,5 @@
+galaxy_info:
+  author: aschuma
+  description: Interactively select an .ini configuration file and update the current-config.ini symlink.
+  min_ansible_version: "2.15"
+dependencies: []

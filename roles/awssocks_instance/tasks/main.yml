@@ -1,0 +1,8 @@
+- name: Run launch flow
+  ansible.builtin.include_tasks: launch.yml
+  when: awssocks_instance_action == 'launch'
+
+- name: Run termination flow
+  ansible.builtin.include_tasks: terminate.yml
+  when: awssocks_instance_action == 'terminate'
+

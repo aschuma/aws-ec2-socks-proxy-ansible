@@ -1,0 +1,50 @@
+- name: Build optional auto-termination startup script
+  ansible.builtin.set_fact:
+    awssocks_auto_termination_user_data: |-
+      #!/bin/bash
+      shutdown -h +{{ awssocks_auto_termination_after_minutes_resolved }}
+  when: awssocks_auto_termination_after_minutes_resolved >= 0
+
+- name: Initialize launch tracking
+  ansible.builtin.set_fact:
+    awssocks_launch_success: false
+    awssocks_launch_failure_messages: []
+
+- name: Attempt launch with instance type candidates
+  ansible.builtin.include_tasks: launch_attempt.yml
+  loop: "{{ awssocks_ec2_instance_size_candidates }}"
+  loop_control:
+    label: "{{ item }}"
+  vars:
+    awssocks_candidate_instance_type: "{{ item }}"
+  when: not awssocks_launch_success
+
+- name: Fail when all candidate instance types fail
+  ansible.builtin.fail:
+    msg: >-
+      Failed to launch instance with any candidate instance type:
+      {{ awssocks_ec2_instance_size_candidates | join(', ') }}.
+      Errors={{ awssocks_launch_failure_messages | join(' | ') }}
+  when: not awssocks_launch_success
+
+- name: Query launched instance details
+  amazon.aws.ec2_instance_info:
+    region: "{{ awssocks_region_resolved }}"
+    instance_ids:
+      - "{{ awssocks_launched_instance_id }}"
+  register: awssocks_launched_instance_info
+
+- name: Store launched instance
+  ansible.builtin.set_fact:
+    awssocks_launched_instance: "{{ awssocks_launched_instance_info.instances | first }}"
+
+- name: Log launched instance details
+  ansible.builtin.import_role:
+    name: awssocks_logging
+  vars:
+    awssocks_log_message: >-
+      launched_instance id={{ awssocks_launched_instance.instance_id }}
+      public_ip={{ awssocks_launched_instance.public_ip_address | default('None') }}
+      state={{ awssocks_launched_instance.state.name }}
+      instance_type={{ awssocks_launched_instance.instance_type }}
+

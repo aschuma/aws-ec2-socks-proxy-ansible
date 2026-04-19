@@ -1,0 +1,7 @@
+.venv/
+collections/ansible_collections/
+*.pyc
+__pycache__/
+*.retry
+current-config.ini
+config.ini

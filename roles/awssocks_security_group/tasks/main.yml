@@ -1,0 +1,69 @@
+- name: Lookup managed security group by description
+  amazon.aws.ec2_group_info:
+    region: "{{ awssocks_region_resolved }}"
+    filters:
+      description: "{{ awssocks_security_group_name_resolved }}"
+  register: awssocks_security_group_info
+
+- name: Store existing security group
+  ansible.builtin.set_fact:
+    awssocks_existing_security_group: "{{ (awssocks_security_group_info.security_groups | default([]) | first) | default(None) }}"
+
+- name: Create managed security group when absent
+  amazon.aws.ec2_group:
+    region: "{{ awssocks_region_resolved }}"
+    name: "{{ awssocks_security_group_name_resolved }}"
+    description: "{{ awssocks_security_group_name_resolved }}"
+    rules:
+      - proto: tcp
+        ports:
+          - 22
+        cidr_ip: 0.0.0.0/0
+    tags:
+      AWSSOCKS__MANAGED: "True"
+    state: present
+  when:
+    - awssocks_security_group_action == 'present'
+    - awssocks_existing_security_group is none
+
+- name: Refresh managed security group lookup after creation
+  amazon.aws.ec2_group_info:
+    region: "{{ awssocks_region_resolved }}"
+    filters:
+      description: "{{ awssocks_security_group_name_resolved }}"
+  register: awssocks_security_group_info_after_present
+  when: awssocks_security_group_action == 'present'
+
+- name: Store active security group ID after present operation
+  ansible.builtin.set_fact:
+    awssocks_security_group_id: "{{ (awssocks_security_group_info_after_present.security_groups | first).group_id }}"
+  when: awssocks_security_group_action == 'present'
+
+- name: Delete managed security group by ID
+  amazon.aws.ec2_group:
+    region: "{{ awssocks_region_resolved }}"
+    group_id: "{{ awssocks_existing_security_group.group_id }}"
+    state: absent
+  when:
+    - awssocks_security_group_action == 'absent'
+    - awssocks_existing_security_group is not none
+
+- name: Store active security group ID for status
+  ansible.builtin.set_fact:
+    awssocks_security_group_id: "{{ awssocks_existing_security_group.group_id if awssocks_existing_security_group is not none else None }}"
+  when: awssocks_security_group_action == 'status'
+
+- name: Store empty security group ID for absent action
+  ansible.builtin.set_fact:
+    awssocks_security_group_id: "{{ None }}"
+  when: awssocks_security_group_action == 'absent'
+
+- name: Log security group operation result
+  ansible.builtin.import_role:
+    name: awssocks_logging
+  vars:
+    awssocks_log_message: >-
+      security_group action={{ awssocks_security_group_action }}
+      id={{ awssocks_security_group_id | default('None') }}
+      description={{ awssocks_security_group_name_resolved }}
+

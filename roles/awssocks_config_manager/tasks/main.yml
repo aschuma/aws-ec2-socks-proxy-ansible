@@ -1,0 +1,75 @@
+- name: Compute repository root path
+  ansible.builtin.set_fact:
+    awssocks_repo_root: "{{ playbook_dir | dirname }}"
+
+- name: Find available configuration files
+  ansible.builtin.find:
+    paths: "{{ awssocks_config_dir }}"
+    patterns: "*.ini"
+    file_type: file
+  register: awssocks_config_candidates
+
+- name: Fail if no configuration files exist
+  ansible.builtin.fail:
+    msg: "No .ini files found in {{ awssocks_config_dir }}"
+  when: awssocks_config_candidates.matched | int == 0
+
+- name: Sort configuration file list
+  ansible.builtin.set_fact:
+    awssocks_sorted_config_files: "{{ awssocks_config_candidates.files | sort(attribute='path') }}"
+
+- name: Read current symlink state
+  ansible.builtin.stat:
+    path: "{{ awssocks_symlink_path }}"
+    follow: false
+  register: awssocks_current_symlink_stat
+
+- name: Store current symlink target
+  ansible.builtin.set_fact:
+    awssocks_current_symlink_target: "{{ awssocks_current_symlink_stat.stat.lnk_target | default('') }}"
+
+- name: Display available configuration choices
+  ansible.builtin.debug:
+    msg: >-
+      [{{ idx + 1 }}] {{ item.path }}
+      {% if item.path == awssocks_current_symlink_target %}(active){% endif %}
+  loop: "{{ awssocks_sorted_config_files }}"
+  loop_control:
+    index_var: idx
+
+- name: Prompt for configuration selection index
+  ansible.builtin.pause:
+    prompt: "Select configuration number (1-{{ awssocks_sorted_config_files | length }}):"
+  register: awssocks_config_prompt
+  when: awssocks_config_selection_index is not defined
+
+- name: Resolve selected index
+  ansible.builtin.set_fact:
+    awssocks_selected_index: >-
+      {{
+        (awssocks_config_selection_index | int)
+        if (awssocks_config_selection_index is defined) else
+        (awssocks_config_prompt.user_input | int)
+      }}
+
+- name: Validate selected index range
+  ansible.builtin.assert:
+    that:
+      - awssocks_selected_index >= 1
+      - awssocks_selected_index <= (awssocks_sorted_config_files | length)
+    fail_msg: "Invalid selection index: {{ awssocks_selected_index }}"
+
+- name: Store selected configuration file
+  ansible.builtin.set_fact:
+    awssocks_selected_config_file: "{{ awssocks_sorted_config_files[awssocks_selected_index - 1].path }}"
+
+- name: Create or update active configuration symlink
+  ansible.builtin.file:
+    src: "{{ awssocks_selected_config_file }}"
+    dest: "{{ awssocks_symlink_path }}"
+    state: link
+    force: true
+
+- name: Report selected configuration
+  ansible.builtin.debug:
+    msg: "Active configuration set to {{ awssocks_selected_config_file }}"

@@ -1,0 +1,2 @@
+awssocks_config_dir: "{{ awssocks_repo_root }}/configs"
+awssocks_symlink_path: "{{ awssocks_repo_root }}/current-config.ini"
