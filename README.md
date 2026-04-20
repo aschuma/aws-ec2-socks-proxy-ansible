@@ -1,6 +1,6 @@
 # aws-ec2-socks-proxy-ansible
 
-An Ansible-native implementation of the AWSSOCKS workflow described in `.github/instructions/awssocks-spec.instructions.md`.
+An Ansible-native implementation of the AWSSOCKS workflow described in [`.github/instructions/awssocks-spec.instructions.md`](https://github.com/aschuma/aws-ec2-socks-proxy-ansible/blob/main/.github/instructions/awssocks-spec.instructions.md).
 
 ---
 
