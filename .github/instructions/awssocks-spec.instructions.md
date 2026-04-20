@@ -206,7 +206,7 @@ The SSH Tunnel Starter is an optional utility that automates opening the SOCKSv5
 
 ## 9. Logging
 
-All operations produce timestamped log output at INFO level. Log entries include:
+All operations produce log output. Log entries include:
 
 - The resolved configuration at startup.
 - Each significant action (create, delete, wait, complete) with relevant resource identifiers.
